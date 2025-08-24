@@ -13,6 +13,9 @@
 
 #define GAME_SPEED 0.125 // control the game speed, lower is faster
 
+#define SCREEN_HEIGHT 450
+#define SCREEN_WIDTH 800
+
 typedef enum { RIGHT, LEFT, DOWN, UP } dir;
 typedef enum { GAME, GAMEOVER } gameState;
 typedef enum { SNAKE, SEGMENT, APPLE } objType; 
@@ -38,6 +41,8 @@ static void removeSegment();
 static void addToList(void* newObj, objType type);
 static void removeFromList(void* obj);
 static int compare(const void *a, const void *b);
+static void repositionApple();
+static bool checkCollision();
 void unloadList();
 
 #endif

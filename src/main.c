@@ -3,7 +3,7 @@
 
 int main(void) {
     SetTraceLogLevel(LOG_WARNING);
-    InitWindow(800, 450, "Isometric Snake");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Isometric Snake");
     SetTargetFPS(60);
     init();
 
@@ -18,7 +18,7 @@ int main(void) {
         ClearBackground(SKYBLUE);
         switch (currentState) {
         case GAME: drawGame(); break;
-        case GAMEOVER: drawGameover(); break;
+        case GAMEOVER: drawGame(); drawGameover(); break;
         default: break;
         }
         EndDrawing();

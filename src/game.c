@@ -16,8 +16,8 @@ const float INV_MATRIX[2][2] = {
 };
 
 //offset values used to center the game screen
-float verticalOffset;
-float horizontalOffset;
+const float verticalOffset = (SCREEN_HEIGHT - TILES_Y*TILE_HEIGHT/2)/2;
+const float horizontalOffset = SCREEN_WIDTH/2 - TILE_WIDTH/2;
 
 gameState currentState;
 Texture2D texture;
@@ -25,6 +25,7 @@ Sprite floorSpr;
 Snake snake;
 Sprite tailSpr;
 Apple apple;
+size_t score = 0;
 float timer; //used to control speed of the game
 
 objWrapper* objects; // list of game objects to be sorted and rendered
@@ -42,15 +43,12 @@ void init() {
 
     floorSpr = (Sprite){{32, 128, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}};
     tailSpr = (Sprite){{0, 32, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}};
-    apple = (Apple){(Sprite){{32, 192, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){10, 10}};
-    snake = (Snake){(Sprite){{0, 0, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){0, 0}};
+    apple = (Apple){(Sprite){{32, 192, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){rand()%TILES_X, rand()%TILES_Y}};
+    snake = (Snake){(Sprite){{0, 0, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){10, 10}};
     
     addToList(&snake, SNAKE);
     addToList(&apple, APPLE);
     addSegment(); addSegment(); addSegment(); // setting the initial length to 3
-
-    verticalOffset = (GetScreenHeight() - TILES_Y*TILE_HEIGHT/2)/2;
-    horizontalOffset = GetScreenWidth()/2 - TILE_WIDTH/2;
 
     timer = 0; 
 
@@ -74,8 +72,19 @@ void updateGame() {
     float deltaTime = GetFrameTime();
     timer += deltaTime;
     if (timer >= GAME_SPEED) { 
+        if(checkCollision() && score > 0) {
+            currentState = GAMEOVER;
+            return;
+        }
+
         addSegment();
-        removeSegment();
+        if(!(snake.pos.x == apple.pos.x && snake.pos.y == apple.pos.y )) {
+            removeSegment();
+        } else {
+            repositionApple();
+            score++;
+        }
+        
         switch (snake.dir) {
         case UP: snake.pos.y--; break;
         case DOWN: snake.pos.y++; break;
@@ -83,10 +92,11 @@ void updateGame() {
         case LEFT: snake.pos.x--; break;
         default: break;
         }
-        timer = 0;
-        if(count > 1){
+        
+        if(count > 1) {
             qsort(objects, count, sizeof(objWrapper), compare);
         }
+        timer = 0;
     }
     snake.sprite.src.x = snake.dir*32; //updating Snake facing direction 
 }
@@ -128,8 +138,9 @@ void drawGame() {
         }
     }
 
-    DrawText(TextFormat("Mouse Position: (%.0f, %.0f)", GetMousePosition().x - horizontalOffset, GetMousePosition().y - verticalOffset), 10, 10, 20, DARKGRAY);
-    DrawText(TextFormat("Mouse Position trans: (%.0f, %.0f)", INV_MATRIX[0][0]*(GetMousePosition().x-horizontalOffset) + INV_MATRIX[0][1]*(GetMousePosition().y-verticalOffset)-1, INV_MATRIX[1][0]*(GetMousePosition().x-horizontalOffset) + INV_MATRIX[1][1]*(GetMousePosition().y-verticalOffset)), 10, 30, 20, DARKGRAY);
+    DrawText(TextFormat("Score: %d", score), 10, 10, 20, RED);
+    DrawText(TextFormat("Mouse Position: (%.0f, %.0f)", GetMousePosition().x - horizontalOffset, GetMousePosition().y - verticalOffset), 10, 30, 20, LIGHTGRAY);
+    DrawText(TextFormat("Mouse Position trans: (%.0f, %.0f)", INV_MATRIX[0][0]*(GetMousePosition().x-horizontalOffset) + INV_MATRIX[0][1]*(GetMousePosition().y-verticalOffset)-1, INV_MATRIX[1][0]*(GetMousePosition().x-horizontalOffset) + INV_MATRIX[1][1]*(GetMousePosition().y-verticalOffset)), 10, 50, 20, LIGHTGRAY);
 }
 
 void updateGameover() {
@@ -137,7 +148,8 @@ void updateGameover() {
 }
 
 void drawGameover() {
-
+    DrawRectangle((SCREEN_WIDTH-400)/2, (SCREEN_HEIGHT-300)/2, 400, 300, (Color){ 0, 0, 0, 128 });
+    DrawText("Game Over!", (SCREEN_WIDTH-400)/2+60, (SCREEN_HEIGHT-300)/2+30, 50, LIGHTGRAY);
 }
 
 static Vector2 isoToScreen(Vector2 isoPos) {
@@ -237,4 +249,34 @@ static int compare(const void *a, const void *b) {
     if (sumA < sumB) return -1;
     if (sumA > sumB) return 1;
     return 0;
+}
+
+static void repositionApple() {
+    bool isValid;
+    do{
+        isValid = true;
+        int x = rand() % TILES_X; // generating random number between 0 - [number of tile along x-axis]
+        int y = rand() % TILES_Y;
+
+        for(int i = 0; i < count; i++ ) {
+            if( x == objects[i].pos->x && y == objects[i].pos->y ) {
+                isValid = false;
+                break;
+            }
+        }
+        if(isValid) {
+            apple.pos.x = x;
+            apple.pos.y = y;
+        }
+    }while(!isValid);
+}
+
+static bool checkCollision() {
+    for(int i = 0; i < count; i++ ) {
+        if( snake.pos.x == objects[i].pos->x && snake.pos.y == objects[i].pos->y && 
+            objects[i].type == SEGMENT ) {
+            return true;
+        }
+    }
+    return false;
 }
