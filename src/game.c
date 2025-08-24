@@ -32,6 +32,9 @@ objWrapper* objects; // list of game objects to be sorted and rendered
 size_t count = 0; //number of items in objects
 size_t capacity = 4; //memory allocated
 
+// gameover screen
+int arrowPos = 140;
+
 void init() {
     objects = (objWrapper*)malloc(capacity*sizeof(objWrapper));
     if (objects == NULL) {
@@ -93,6 +96,12 @@ void updateGame() {
         default: break;
         }
         
+        if(snake.pos.y < 0) { snake.pos.y = 19; }
+        if(snake.pos.x < 0) { snake.pos.x = 19; }
+        if(snake.pos.y > 19) { snake.pos.y = 0; }
+        if(snake.pos.x > 19) { snake.pos.x = 0; }
+
+
         if(count > 1) {
             qsort(objects, count, sizeof(objWrapper), compare);
         }
@@ -144,12 +153,42 @@ void drawGame() {
 }
 
 void updateGameover() {
+    if(IsKeyPressed(KEY_UP)) {
+        arrowPos = 140;
+    }
+    if(IsKeyPressed(KEY_DOWN)) {
+        arrowPos = 180;
+    }
+    if(IsKeyPressed(KEY_ENTER)) {
+        if(arrowPos == 140) {
+            unloadList();
+            freeSegments();
+            score = 0;
+            currentState = GAME;
 
+            objects = (objWrapper*)malloc(capacity*sizeof(objWrapper));
+            if (objects == NULL) {
+                perror("Failed to allocate memory");
+                exit(EXIT_FAILURE);
+            }
+            apple = (Apple){(Sprite){{32, 192, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){rand()%TILES_X, rand()%TILES_Y}};
+            snake = (Snake){(Sprite){{0, 0, 32, 32}, {0, 0, TILE_WIDTH, TILE_HEIGHT}}, (Vector2){10, 10}};
+    
+            addToList(&snake, SNAKE);
+            addToList(&apple, APPLE);
+            addSegment(); addSegment(); addSegment();
+        }
+        if(arrowPos == 180) { exit(0); }
+    }
 }
 
 void drawGameover() {
     DrawRectangle((SCREEN_WIDTH-400)/2, (SCREEN_HEIGHT-300)/2, 400, 300, (Color){ 0, 0, 0, 128 });
     DrawText("Game Over!", (SCREEN_WIDTH-400)/2+60, (SCREEN_HEIGHT-300)/2+30, 50, LIGHTGRAY);
+    DrawText(TextFormat("Score: %d", score), (SCREEN_WIDTH-400)/2+60, (SCREEN_HEIGHT-300)/2+90, 40, LIGHTGRAY);
+    DrawText("->", (SCREEN_WIDTH-400)/2+60, (SCREEN_HEIGHT-300)/2+arrowPos, 40, LIGHTGRAY);
+    DrawText("Restart", (SCREEN_WIDTH-400)/2+100, (SCREEN_HEIGHT-300)/2+140, 40, LIGHTGRAY);
+    DrawText("Quit", (SCREEN_WIDTH-400)/2+100, (SCREEN_HEIGHT-300)/2+180, 40, LIGHTGRAY);
 }
 
 static Vector2 isoToScreen(Vector2 isoPos) {
@@ -237,6 +276,17 @@ void unloadList() {
     objects = NULL;
     count = 0;
     capacity = 4;
+}
+
+void freeSegments() {
+    Segment* current = snake.head;
+    Segment* nextSeg;
+
+    while (current != NULL) {
+        nextSeg = current->next;
+        free(current); 
+        current = nextSeg;
+    }
 }
 
 static int compare(const void *a, const void *b) {

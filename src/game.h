@@ -44,5 +44,6 @@ static int compare(const void *a, const void *b);
 static void repositionApple();
 static bool checkCollision();
 void unloadList();
+void freeSegments();
 
 #endif
